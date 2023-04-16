@@ -27,7 +27,7 @@ setup_gpt_disk() {
 
     mkfs.ext3 /dev/sda2
     mkfs.ext4 /dev/vg00/rootfs
-    s# mkswap /dev/vg00/swapg
+    mkswap /dev/vg00/swapg
 
     mount -t ext4 /dev/vg00/rootfs /mnt
     mkdir /mnt/boot
@@ -59,7 +59,7 @@ usage() {
 	exit $1
 }
 
-while getopts "hi:r:u:p:gn:d:b:f:sn" option; do
+while getopts "hi:r:u:p:gn:d:b:f:sn:" option; do
     case $option in
         h) usage 0
             exit ;;
