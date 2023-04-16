@@ -9,13 +9,17 @@ setup_gpt_disk() {
 
     printf "%s\n" "$disk_name" "o" "y" "n" "1" "" "+$boot_partition_size" "ef02" "n" "2" "" "+$file_system_partition_size" "8300" "n" "3" "" "" "8e00" "x" "a" "2" "2" "" "w" "y"| gdisk
 
-    partition_2={$disk_name}2
-    partition_3={$disk_name}3
+    printf "Refreshing partition table ..."
+    partprobe
+    printf "Done!\n"
+
+    partition_2="${disk_name}2"
+    partition_3="${disk_name}3"
 
     pvcreate $partition_3
     vgcreate vg00 $partition_3
 
-    lvcreate -n swap -C y -L $swap_partition_size vg00
+    lvcreate -n swap -C y -L +$swap_partition_size vg00
     lvcreate -n rootfs -l100%FREE vg00
     rc-update add lvm
 
@@ -69,6 +73,10 @@ while getopts "hi:r:u:p:gn:d:b:f:sn" option; do
         f) file_system_partition_size="$OPTARG" ;;
         s) swap_partition_size="$OPTARG" ;;
         n) no_prompt_reboot="$OPTIND" ;;
+        # TODO: Add option to specify DNS Server other than Cloudflare as default
+        # TODO: Add option to specify LVM names other than vg00 as default
+        # TODO: Add option to specify Timezone other that UTC as defualt
+
     esac
 done
 
@@ -96,14 +104,16 @@ if [ -z "$disk_name" ]; then
     read -p "Please enter the disk you want to install alpine on (e.g. /dev/sda): " disk_name
 fi
 if [[ ! -z "$is_gpt" && -z "$boot_partition_size" ]]; then
-    read -p "Please enter the size you want the boot partition to be (e.g. +100M): " boot_partition_size
+    read -p "Please enter the size you want the boot partition to be using [KMG to denote units](e.g. 100M): " boot_partition_size
 fi
 if [[ ! -z "$is_gpt" && -z "$file_system_partition_size" ]]; then
-    read -p "Please enter the size you want the file system partition to be (e.g. +100M): " file_system_partition_size
+    read -p "Please enter the size you want the file system partition to be using [KMG to denote units](e.g. 100M): " file_system_partition_size
 fi
 if [[ ! -z "$is_gpt" && -z "$swap_partition_size" ]]; then
-    read -p "Please enter the size you want the swap partition to be (e.g. +100M): " swap_partition_size
+    read -p "Please enter the size you want the swap partition to be using [KMG to denote units](e.g. 2G): " swap_partition_size
 fi
+
+#TODO: Regex check user input here - new function
 
 printf "Setting hostname to $hostname ..."
 setup-hostname -n $hostname
@@ -174,7 +184,7 @@ mkdir "/mnt/home/$new_user"
 printf "Done!\n"
 
 printf "Setting new user as owner of new home directory ..."
-chown $new_user "/mnt/home/$new_user"
+chown -R $new_user "/mnt/home/$new_user"
 printf "Done!\n"
 
 printf "Moving follow-up scripts to new filesystem under root..."
@@ -194,7 +204,7 @@ echo -en "\n\n\n\n" >>/mnt/etc/motd
 printf "Done!\n"
 
 
-if [ -z "$no_prompt_reboot" ]; then
+if [ ! -z "$no_prompt_reboot" ]; then
     reboot
 else
     read -p "Installation Complete! Press enter to continue or ctrl+c to exit to vm" blank

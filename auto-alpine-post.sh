@@ -129,7 +129,7 @@ printf "Done!\n"
 echo "Setting next boot motd ..."
 echo > /etc/motd
 echo "Okay hear me out, Alpine, but automated!" >> /etc/motd
-echo -en "\n\n\n\n" >> //etc/motd
+echo -en "\n\n\n\n" >> /etc/motd
 printf "Done!\n"
 
 if [[ ! -z "$all" || ! -z "$openssh" ]]; then
